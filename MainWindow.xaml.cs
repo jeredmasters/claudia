@@ -34,6 +34,37 @@ namespace TicTacToe
             NewGame();
         }
 
+        private void Learn()
+        {
+            Engine oposition = new Engine();
+            bool primaryTurn = _rnd.Next(0, 2) == 0;
+            for (int i = 0; i < 1000; i++)
+            {
+                while (_currentState.HasWinner() == Piece.Empty) {
+                    if (primaryTurn)
+                    {
+                        int aiDecision = _engine.GetDecision(_currentState, _rnd.Next(0, 10));
+                        if (aiDecision != -1)
+                        {
+                            _currentState.Place(aiDecision, Piece.Naught);
+                        }
+                    }
+                    else
+                    {
+                        int aiDecision = oposition.GetDecision(_currentState, _rnd.Next(0, 10));
+                        if (aiDecision != -1)
+                        {
+                            _currentState.Place(aiDecision, Piece.Cross);
+                        }
+                    }
+                }
+
+                primaryTurn = !primaryTurn;
+
+                NewGame();
+            }
+        }
+
         private void NewGame()
         {
             _currentState = new State();
@@ -58,7 +89,7 @@ namespace TicTacToe
         {
             if (!_playerTurn)
             {
-                int aiDecision = _engine.GetDecision(_currentState, _rnd.Next(0, 9));
+                int aiDecision = _engine.GetDecision(_currentState, _rnd.Next(0, 10));
                 if (aiDecision != -1)
                 {
                     _currentState.Place(aiDecision, Piece.Naught);
