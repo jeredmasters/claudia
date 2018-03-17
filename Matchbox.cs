@@ -6,19 +6,32 @@ using System.Threading.Tasks;
 
 namespace TicTacToe
 {
-    class Matchbox
+    public class Matchbox
     {
-        string _name;
+        string _token;
         State _state;
         List<int> _choices;
 
         public Matchbox(State state)
         {
             _state = state;
-            _name = state.ToString();
+            _token = state.ToString();
             _choices = new List<int>();
 
-            for(int i = 0; i < 9; i++)
+            InitChoices();
+        }
+
+        public string Token
+        {
+            get
+            {
+                return _token;
+            }
+        }
+
+        private void InitChoices()
+        {
+            for (int i = 0; i < 9; i++)
             {
                 if (_state.CanGo(i))
                 {
@@ -28,9 +41,9 @@ namespace TicTacToe
             }
         }
 
-        public bool IsState(State state)
+        public Transform? GetTransform(State state)
         {
-            return state == _state;
+            return State.GetTransform(state, _state);
         }
 
         public int MakeDecision(int rand)
@@ -38,25 +51,39 @@ namespace TicTacToe
             return _choices[rand % _choices.Count];
         }
 
-        public void RewardDecision(int decision, bool good)
+        public void RewardDecision(int decision, int reward)
         {
-            if (good)
+            switch (reward)
             {
-                _choices.Add(decision);
-                _choices.Add(decision);
-                _choices.Add(decision);
-            }
-            else
-            {
-                for(int i = 0; i < _choices.Count; i++)
-                {
-                    if (_choices[i] == decision)
+                case -1:
+                    for (int i = 0; i < _choices.Count; i++)
                     {
-                        _choices.RemoveAt(i);
-                        break;
+                        if (_choices[i] == decision)
+                        {
+                            _choices.RemoveAt(i);
+                            break;
+                        }
                     }
-                }
+                    break;
+                case 0:
+                    _choices.Add(decision);
+                    break;
+                case 1:
+                    _choices.Add(decision);
+                    _choices.Add(decision);
+                    _choices.Add(decision);
+                    break;
             }
+
+            if(_choices.Count == 0)
+            {
+                InitChoices();
+            }
+        }
+
+        public override string ToString()
+        {
+            return _state.ToString();
         }
     }
 }

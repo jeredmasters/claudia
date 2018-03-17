@@ -6,16 +6,27 @@ using System.Threading.Tasks;
 
 namespace TicTacToe
 {
-    enum Piece
+    public enum Piece
     {
         Empty = 0,
         Naught = 1,
-        Cross = 2
+        Cross = 2,
+        Draw = -1
     }
 
-    internal class State
+    public class State
     {
         Piece[] _board;
+
+
+        public State()
+        {
+            _board = new Piece[9];
+            for (int i = 0; i < 9; i++)
+            {
+                _board[i] = Piece.Empty;
+            }
+        }
 
         public State(string board)
         {
@@ -27,32 +38,26 @@ namespace TicTacToe
 
             for (int i = 0; i < board.Length; i++)
             {
+                int j = 8 - i;
                 switch (board[i])
                 {
                     case '0':
-                        _board[i] = Piece.Empty;
+                        _board[j] = Piece.Empty;
                         break;
                     case '1':
-                        _board[i] = Piece.Naught;
+                        _board[j] = Piece.Naught;
                         break;
                     case '2':
-                        _board[i] = Piece.Cross;
+                        _board[j] = Piece.Cross;
                         break;
                     default:
-                        _board[i] = Piece.Empty;
+                        _board[j] = Piece.Empty;
                         break;
                 }
             }
         }
 
-        public State()
-        {
-            _board = new Piece[9];
-            for (int i = 0; i < 9; i++)
-            {
-                _board[i] = Piece.Empty;
-            }
-        }
+
 
         public State(Piece[] board)
         {
@@ -81,7 +86,28 @@ namespace TicTacToe
                 _board[position] = piece;
                 return true;
             }
-            return false;
+            throw new Exception("Cannot place at: " + position);
+        }
+
+        public bool Valid()
+        {
+            int o = 0;
+            int x = 0;
+
+            for(int i = 0; i < 9; i++)
+            {
+                switch (_board[i])
+                {
+                    case Piece.Cross:
+                        o++;
+                        break;
+                    case Piece.Naught:
+                        x++;
+                        break;
+                }
+            }
+
+            return Math.Abs(o - x) <= 1;
         }
 
         public Piece HasWinner()
@@ -112,22 +138,27 @@ namespace TicTacToe
                 return Get(2);
             }
 
-            return Piece.Empty;
+            // If there's any empty squares then the game is still going
+            for (int i = 0; i < 9; i++)
+            {
+                if (_board[i] == Piece.Empty)
+                {
+                    return Piece.Empty;
+                }
+            }
+
+            // If there's no empty squares, then it's a draw
+            return Piece.Draw;
         }
 
-        public State Rotate()
+        public State RotateRight()
         {
             Piece[] temp = new Piece[9];
 
-            temp[0] = _board[6];
-            temp[1] = _board[3];
-            temp[2] = _board[0];
-            temp[3] = _board[7];
-            temp[4] = _board[4];
-            temp[5] = _board[1];
-            temp[6] = _board[8];
-            temp[7] = _board[5];
-            temp[8] = _board[2];
+            for(int i = 0; i < 9; i++)
+            {
+                temp[Util.RotateRight(i)] = _board[i];
+            }
 
             return new State(temp);
         }
@@ -136,32 +167,45 @@ namespace TicTacToe
         {
             Piece[] temp = new Piece[9];
 
-            temp[0] = _board[2];
-            temp[1] = _board[1];
-            temp[2] = _board[0];
-            temp[3] = _board[5];
-            temp[4] = _board[4];
-            temp[5] = _board[3];
-            temp[6] = _board[8];
-            temp[7] = _board[7];
-            temp[8] = _board[6];
+            for (int i = 0; i < 9; i++)
+            {
+                temp[i] = _board[Util.Flip(i)];
+            }
 
             return new State(temp);
         }
 
-        public State FlipVertical()
+        public State Clone()
         {
             Piece[] temp = new Piece[9];
 
-            temp[0] = _board[6];
-            temp[1] = _board[7];
-            temp[2] = _board[8];
-            temp[3] = _board[3];
-            temp[4] = _board[4];
-            temp[5] = _board[5];
-            temp[6] = _board[0];
-            temp[7] = _board[1];
-            temp[8] = _board[2];
+            for (int i = 0; i < 9; i++)
+            {
+                temp[i] = _board[i];
+            }
+
+            return new State(temp);
+        }
+
+        public State Invert()
+        {
+            Piece[] temp = new Piece[9];
+
+            for (int i = 0; i < 9; i++)
+            {
+                switch (_board[i])
+                {
+                    case Piece.Naught:
+                        temp[i] = Piece.Cross;
+                        break;
+                    case Piece.Cross:
+                        temp[i] = Piece.Naught;
+                        break;
+                    default:
+                        temp[i] = _board[i];
+                        break;
+                }
+            }
 
             return new State(temp);
         }
@@ -171,38 +215,34 @@ namespace TicTacToe
             return String.Join("", _board.Select(t => (int)t));
         }
 
-        private static bool Compare(State a, State b)
+
+        public static Transform? GetTransform(State a, State b)
         {
-            for (int r = 0; r < 3; r++)
+            State c = b.Clone();
+            for (int r = 0; r < 4; r++)
             {
-                bool same = true;
-                for (int i = 0; i < 3; i++)
-                {
-                    if (a._board[i] != b._board[i])
-                    {
-                        same = false;
-                        break;
-                    }
-                }
-                if (same)
-                    return true;
-                b = b.Rotate();
+                if (a == c)
+                    return new Transform() { Rotate = r, Flip = false };
+                c = c.RotateRight();
             }
-            return false;
+            c = b.FlipHorizontal();
+            for (int r = 0; r < 4; r++)
+            {
+                if (a == c)
+                    return new Transform() { Rotate = r, Flip = true };
+                c = c.RotateRight();
+            }
+            return null;
         }
 
         public static bool operator ==(State a, State b)
         {
-            if (Compare(a, b))
-                return true;
-            b = b.FlipHorizontal();
-            if (Compare(a, b))
-                return true;
-            b = b.FlipVertical();
-            if (Compare(a, b))
-                return true;
-
-            return false;
+            for (int i = 0; i < 9; i++)
+            {
+                if (a._board[i] != b._board[i])
+                    return false;
+            }
+            return true;
         }
         public static bool operator !=(State a, State b)
         {

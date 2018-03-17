@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,6 +13,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 
 namespace TicTacToe
 {
@@ -23,54 +25,104 @@ namespace TicTacToe
         State _currentState;
         bool _playerTurn;
         Piece _playerPeice = Piece.Cross;
+        Piece _aiPeice = Piece.Naught;
         Random _rnd;
         Engine _engine;
+        DispatcherTimer _timer;
+        int _trainingGames = 0;
+        Thread _thread;
+        bool _learning;
         public MainWindow()
         {
             InitializeComponent();
             _rnd = new Random();
             _engine = new Engine();
-
+            _timer = new DispatcherTimer(DispatcherPriority.Normal);
+            _learning = true;
+            _timer.Tick += _timer_Tick;
+            _timer.Interval = new TimeSpan(0, 0, 0, 0, 10);
+            _timer.Start();
+            _thread = new Thread(Learn);
             NewGame();
+            Draw();
+            _thread.Start();
         }
 
+        private void _timer_Tick(object sender, EventArgs e)
+        {
+            Draw();
+            if (!_learning)
+            {
+                _timer.Stop();
+                NewGame();
+                AiMove();
+                CheckGame();
+            }
+        }
         private void Learn()
         {
-            Engine oposition = new Engine();
-            bool primaryTurn = _rnd.Next(0, 2) == 0;
-            for (int i = 0; i < 1000; i++)
-            {
-                while (_currentState.HasWinner() == Piece.Empty) {
-                    if (primaryTurn)
-                    {
-                        int aiDecision = _engine.GetDecision(_currentState, _rnd.Next(0, 10));
-                        if (aiDecision != -1)
-                        {
-                            _currentState.Place(aiDecision, Piece.Naught);
-                        }
-                    }
-                    else
-                    {
-                        int aiDecision = oposition.GetDecision(_currentState, _rnd.Next(0, 10));
-                        if (aiDecision != -1)
-                        {
-                            _currentState.Place(aiDecision, Piece.Cross);
-                        }
-                    }
+            _learning = true;
+            for (int i = 0; i < 4000; i++) {
+
+
+
+                Piece winner;
+                do
+                {
+                    LearnLoop();
+                    winner = _currentState.HasWinner();
+                } while (winner == Piece.Empty);
+
+                if (winner == Piece.Draw)
+                {
+                    _engine.RewardDecisions(0);
+                }
+                if (winner == _aiPeice)
+                {
+                    _engine.RewardDecisions(1);
+                }
+                if (winner == _playerPeice)
+                {
+                    _engine.RewardDecisions(-1);
                 }
 
-                primaryTurn = !primaryTurn;
-
+                _trainingGames++;
                 NewGame();
+                
             }
+            _learning = false;
+        }
+        private void LearnLoop()
+        {
+            int aiDecision;
+            if (!_playerTurn)
+            {
+                aiDecision = _engine.GetDecision(_currentState, _rnd.Next(0, 10));
+                if (aiDecision != -1)
+                {
+                    _currentState.Place(aiDecision, _aiPeice);
+                }
+            }
+            else
+            {
+                aiDecision = _engine.GetDecision(_currentState.Invert(), _rnd.Next(0, 10), false);
+                if (aiDecision != -1)
+                {
+                    _currentState.Place(aiDecision, _playerPeice);
+                }
+            }
+
+            if (!_currentState.Valid())
+            {
+                throw new Exception("Invalid Game State");
+            }
+            _playerTurn = !_playerTurn;
         }
 
         private void NewGame()
         {
             _currentState = new State();
             _playerTurn = _rnd.Next(0, 2) == 0;
-
-            Internal();
         }
 
         private void BoardClicked(int position)
@@ -81,18 +133,19 @@ namespace TicTacToe
                 _playerTurn = false;
 
             }
-
-            Internal();
+            CheckGame();
+            AiMove();
+            CheckGame();
         }
 
-        private void Internal()
+        private void AiMove()
         {
             if (!_playerTurn)
             {
                 int aiDecision = _engine.GetDecision(_currentState, _rnd.Next(0, 10));
                 if (aiDecision != -1)
                 {
-                    _currentState.Place(aiDecision, Piece.Naught);
+                    _currentState.Place(aiDecision, _aiPeice);
                     _playerTurn = true;
                 }
                 else
@@ -101,12 +154,16 @@ namespace TicTacToe
                     NewGame();
                 }
             }
+        }
+        private void CheckGame() { 
 
             Draw();
             var winner = _currentState.HasWinner();
             if (winner != Piece.Empty && MessageBox.Show("Winner: " + winner + "s", "Game Over", MessageBoxButton.OK) == MessageBoxResult.OK)
             {
                 NewGame();
+                AiMove();
+                Draw();                
             }
         }
 
