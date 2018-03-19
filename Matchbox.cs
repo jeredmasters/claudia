@@ -36,7 +36,6 @@ namespace TicTacToe
                 if (_state.CanGo(i))
                 {
                     _choices.Add(i);
-                    _choices.Add(i);
                 }
             }
         }
@@ -46,9 +45,9 @@ namespace TicTacToe
             return State.GetTransform(state, _state);
         }
 
-        public int MakeDecision(int rand)
+        public int MakeDecision(Random rnd)
         {
-            return _choices[rand % _choices.Count];
+            return _choices[rnd.Next(_choices.Count)];
         }
 
         public void RewardDecision(int decision, int reward)

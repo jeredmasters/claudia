@@ -36,11 +36,11 @@ namespace TicTacToe
         {
             InitializeComponent();
             _rnd = new Random();
-            _engine = new Engine();
+            _engine = new Engine(_rnd);
             _timer = new DispatcherTimer(DispatcherPriority.Normal);
             _learning = true;
             _timer.Tick += _timer_Tick;
-            _timer.Interval = new TimeSpan(0, 0, 0, 0, 10);
+            _timer.Interval = new TimeSpan(0, 0, 0, 0, 20);
             _timer.Start();
             _thread = new Thread(Learn);
             NewGame();
@@ -62,10 +62,10 @@ namespace TicTacToe
         private void Learn()
         {
             _learning = true;
-            for (int i = 0; i < 4000; i++) {
 
+            int total = (int)Math.Pow(3, 9);
 
-
+            for (int i = 0; i < total; i++) {
                 Piece winner;
                 do
                 {
@@ -87,8 +87,7 @@ namespace TicTacToe
                 }
 
                 _trainingGames++;
-                NewGame();
-                
+                NewGame(Util.GenerateState(i));                
             }
             _learning = false;
         }
@@ -97,7 +96,7 @@ namespace TicTacToe
             int aiDecision;
             if (!_playerTurn)
             {
-                aiDecision = _engine.GetDecision(_currentState, _rnd.Next(0, 10));
+                aiDecision = _engine.GetDecision(_currentState);
                 if (aiDecision != -1)
                 {
                     _currentState.Place(aiDecision, _aiPeice);
@@ -105,7 +104,7 @@ namespace TicTacToe
             }
             else
             {
-                aiDecision = _engine.GetDecision(_currentState.Invert(), _rnd.Next(0, 10), false);
+                aiDecision = _engine.GetDecision(_currentState.Invert(), false);
                 if (aiDecision != -1)
                 {
                     _currentState.Place(aiDecision, _playerPeice);
@@ -122,6 +121,12 @@ namespace TicTacToe
         private void NewGame()
         {
             _currentState = new State();
+            _playerTurn = _rnd.Next(0, 2) == 0;
+        }
+
+        private void NewGame(State state)
+        {
+            _currentState = state;
             _playerTurn = _rnd.Next(0, 2) == 0;
         }
 
@@ -142,7 +147,7 @@ namespace TicTacToe
         {
             if (!_playerTurn)
             {
-                int aiDecision = _engine.GetDecision(_currentState, _rnd.Next(0, 10));
+                int aiDecision = _engine.GetDecision(_currentState);
                 if (aiDecision != -1)
                 {
                     _currentState.Place(aiDecision, _aiPeice);

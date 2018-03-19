@@ -74,6 +74,37 @@ namespace TicTacToe
             }
             return -1;
         }
+
+        public static string Int32ToString(int value, int toBase)
+        {
+            string result = string.Empty;
+            while (value > 0)
+            {
+                result = "012"[value % toBase] + result;
+                value /= toBase;
+            }
+
+            while (result.Length < 9)
+            {
+                result = '0' + result;
+            }
+
+
+            return result;
+        }
+
+        public static State GenerateState(int seed)
+        {
+            string preamble = Util.Int32ToString(seed, 3);
+            int ones = preamble.Count(t => t == '1');
+            int twos = preamble.Count(t => t == '2');
+            if (Math.Abs(ones - twos) <= 1)
+            {
+                var state = new State(preamble);
+            }
+            return new State();
+        }
+
     }
 
 

@@ -64,6 +64,18 @@ namespace TicTacToe
             _board = board;
         }
 
+        public bool Empty()
+        {
+            for(int i = 0; i < 9; i++)
+            {
+                if(_board[i] != Piece.Empty)
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         public Piece Get(int x, int y)
         {
             return _board[x + 3 * y];
